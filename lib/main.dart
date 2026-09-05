@@ -142,16 +142,25 @@ class _WeatherHomePageState extends State<WeatherHomePage> {
       appBar: AppBar(
         backgroundColor: themeColor.withAlpha(204), // roughly 0.8 opacity
         elevation: 0,
-        title: Row(
+        title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/logo.png',
-              height: 30,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.wb_sunny, color: Colors.white),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  'assets/logo.png',
+                  height: 25,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.wb_sunny, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 8),
+                const Text('ATMOS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 20)),
+              ],
             ),
-            const SizedBox(width: 10),
-            const Text('ATMOS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+            const Text(
+              'Developed by Kumails Computer',
+              style: TextStyle(fontSize: 10, color: Colors.white70, fontWeight: FontWeight.w400, letterSpacing: 0.5),
+            ),
           ],
         ),
         centerTitle: true,
