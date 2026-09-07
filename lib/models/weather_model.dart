@@ -5,6 +5,7 @@ class Weather {
   final String description;
   final int humidity;
   final double windSpeed;
+  final int timezoneOffset; // Offset in seconds from UTC
   final List<ForecastItem> hourlyForecast;
   final List<ForecastItem> dailyForecast;
 
@@ -15,9 +16,16 @@ class Weather {
     required this.description,
     required this.humidity,
     required this.windSpeed,
+    required this.timezoneOffset,
     required this.hourlyForecast,
     required this.dailyForecast,
   });
+
+  // Helper to get the current local time of the city
+  DateTime get localTime {
+    final nowUtc = DateTime.now().toUtc();
+    return nowUtc.add(Duration(seconds: timezoneOffset));
+  }
 
   factory Weather.fromJson(Map<String, dynamic> currentJson, Map<String, dynamic> forecastJson) {
     double toDouble(dynamic val) {
@@ -27,12 +35,14 @@ class Weather {
       return 0.0;
     }
 
+    final int timezone = currentJson['timezone'] ?? 0;
+
     final List<ForecastItem> rawForecast = [];
     final list = forecastJson['list'];
     if (list is List) {
       for (var item in list) {
         if (item is Map<String, dynamic>) {
-          rawForecast.add(ForecastItem.fromJson(item));
+          rawForecast.add(ForecastItem.fromJson(item, timezone));
         }
       }
     }
@@ -63,8 +73,10 @@ class Weather {
     // Daily Forecast: 7 days
     final daily = <ForecastItem>[];
     final seenDates = <String>{};
-    final now = DateTime.now();
-    final todayString = "${now.year}-${now.month}-${now.day}";
+    
+    // Get city's local today to skip correctly
+    final cityNow = DateTime.now().toUtc().add(Duration(seconds: timezone));
+    final todayString = "${cityNow.year}-${cityNow.month}-${cityNow.day}";
 
     for (var item in rawForecast) {
       final dateString = "${item.time.year}-${item.time.month}-${item.time.day}";
@@ -86,6 +98,7 @@ class Weather {
       description: weather['description'] ?? '',
       humidity: main['humidity'] ?? 0,
       windSpeed: toDouble(wind['speed']) * 3.6,
+      timezoneOffset: timezone,
       hourlyForecast: hourly,
       dailyForecast: daily,
     );
@@ -93,7 +106,7 @@ class Weather {
 }
 
 class ForecastItem {
-  final DateTime time;
+  final DateTime time; // This is the LOCAL time of the city
   final double temperature;
   final String condition;
 
@@ -103,7 +116,7 @@ class ForecastItem {
     required this.condition,
   });
 
-  factory ForecastItem.fromJson(Map<String, dynamic> json) {
+  factory ForecastItem.fromJson(Map<String, dynamic> json, int timezoneOffset) {
     double toDouble(dynamic val) {
       if (val == null) return 0.0;
       if (val is int) return val.toDouble();
@@ -112,8 +125,13 @@ class ForecastItem {
     }
     final main = json['main'] ?? {};
     final weather = (json['weather'] as List?)?.firstOrNull ?? {};
+    
+    // Convert UTC timestamp from API to City's Local Time
+    final utcTime = DateTime.fromMillisecondsSinceEpoch((json['dt'] ?? 0) * 1000, isUtc: true);
+    final localTime = utcTime.add(Duration(seconds: timezoneOffset));
+
     return ForecastItem(
-      time: DateTime.fromMillisecondsSinceEpoch((json['dt'] ?? 0) * 1000),
+      time: localTime,
       temperature: toDouble(main['temp']),
       condition: weather['main'] ?? 'Clear',
     );

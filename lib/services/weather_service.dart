@@ -75,21 +75,48 @@ class WeatherService {
   }
 
   Future<List<String>> getCitySuggestions(String query) async {
-    if (query.length < 3) return [];
+    if (query.length < 2) return [];
 
+    // Use the 'find' endpoint with 'type=like' for better fuzzy matching of misspellings
     final response = await http.get(
-      Uri.parse('https://api.openweathermap.org/geo/1.0/direct?q=$query&limit=5&appid=$apiKey'),
+      Uri.parse('$baseUrl/find?q=$query&type=like&sort=population&cnt=10&appid=$apiKey'),
     );
 
     if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data.map((item) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      final List list = data['list'] ?? [];
+      
+      // Use a Set to avoid duplicate entries (same city name in different systems)
+      final Set<String> suggestions = {};
+      
+      for (var item in list) {
         final name = item['name'];
-        final country = item['country'];
-        final state = item['state'];
-        return state != null ? '$name, $state, $country' : '$name, $country';
-      }).toList();
+        final sys = item['sys'] ?? {};
+        final country = sys['country'] ?? '';
+        
+        if (name != null) {
+          suggestions.add('$name, $country');
+        }
+      }
+      
+      return suggestions.toList();
     }
+    
+    // Fallback to direct geocoding if 'find' fails (some keys have different permissions)
+    try {
+      final geoResponse = await http.get(
+        Uri.parse('https://api.openweathermap.org/geo/1.0/direct?q=$query&limit=5&appid=$apiKey'),
+      );
+      if (geoResponse.statusCode == 200) {
+        final List geoData = jsonDecode(geoResponse.body);
+        return geoData.map((item) {
+          final name = item['name'];
+          final country = item['country'];
+          return '$name, $country';
+        }).toList();
+      }
+    } catch (_) {}
+
     return [];
   }
 }

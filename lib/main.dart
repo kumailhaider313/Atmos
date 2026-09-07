@@ -95,6 +95,14 @@ class _WeatherHomePageState extends State<WeatherHomePage> {
 
   Color _getWeatherColor() {
     if (_weather == null) return Colors.blue.shade900;
+    
+    final hour = _weather!.localTime.hour;
+    final isNight = hour < 6 || hour > 19;
+
+    if (isNight) {
+      return const Color(0xFF0F2027); // Deep midnight blue for night
+    }
+
     switch (_weather!.mainCondition.toLowerCase()) {
       case 'clear':
         return Colors.blue.shade800;

@@ -62,7 +62,7 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: _getGradientColors(widget.weather.mainCondition),
+          colors: _getGradientColors(widget.weather.mainCondition, widget.weather.localTime.hour),
         ),
       ),
       child: LayoutBuilder(
@@ -77,7 +77,13 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
     );
   }
 
-  List<Color> _getGradientColors(String condition) {
+  List<Color> _getGradientColors(String condition, int hour) {
+    final isNight = hour < 6 || hour > 19;
+    
+    if (isNight) {
+      return [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)];
+    }
+
     switch (condition.toLowerCase()) {
       case 'clear':
         return [Colors.blue.shade800, Colors.lightBlue.shade400];
@@ -268,6 +274,7 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
   }
 
   Widget _buildHeader(BuildContext context, {bool isDesktop = false}) {
+    final localTime = widget.weather.localTime;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -281,7 +288,7 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
           ),
         ),
         Text(
-          DateFormat('EEEE, d MMMM').format(DateTime.now()),
+          "${DateFormat('EEEE, d MMMM').format(localTime)}, ${DateFormat('h:mm a').format(localTime)}",
           style: const TextStyle(color: Colors.white70, fontSize: 16),
         ),
       ],
@@ -314,7 +321,7 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
           ],
         ),
         Icon(
-          _getWeatherIcon(widget.weather.mainCondition),
+          _getWeatherIcon(widget.weather.mainCondition, widget.weather.localTime.hour),
           color: Colors.white,
           size: isDesktop ? 120 : 80,
         ),
@@ -449,7 +456,7 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
               children: [
                 Text(DateFormat('h a').format(item.time), style: const TextStyle(color: Colors.white70, fontSize: 12)),
                 const SizedBox(height: 8),
-                Icon(_getWeatherIcon(item.condition), color: Colors.white, size: 24),
+                Icon(_getWeatherIcon(item.condition, item.time.hour), color: Colors.white, size: 24),
                 const SizedBox(height: 8),
                 Text('${item.temperature.round()}°', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ],
@@ -469,7 +476,7 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
         final item = widget.weather.dailyForecast[index];
         return ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: Icon(_getWeatherIcon(item.condition), color: Colors.white, size: 28),
+          leading: Icon(_getWeatherIcon(item.condition, item.time.hour), color: Colors.white, size: 28),
           title: Text(
             DateFormat('EEEE').format(item.time),
             style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -530,12 +537,13 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
     );
   }
 
-  IconData _getWeatherIcon(String condition) {
+  IconData _getWeatherIcon(String condition, int hour) {
+    final isNight = hour < 6 || hour > 19;
     switch (condition.toLowerCase()) {
       case 'clear':
-        return Icons.wb_sunny;
+        return isNight ? Icons.nightlight_round : Icons.wb_sunny;
       case 'clouds':
-        return Icons.cloud;
+        return isNight ? Icons.cloud_queue : Icons.cloud;
       case 'rain':
         return Icons.umbrella;
       case 'snow':
@@ -543,7 +551,7 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
       case 'thunderstorm':
         return Icons.bolt;
       default:
-        return Icons.wb_cloudy;
+        return isNight ? Icons.nightlight_round : Icons.wb_cloudy;
     }
   }
 }
